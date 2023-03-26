@@ -10,12 +10,12 @@
 
 char print_val(float float_val)
 {
-    float increment = 20 / 5;
+    float increment = 30 / 5;
     if(float_val == -10)
     {
         return ' '; 
     }
-    else if(float_val < (increment) -10)
+    else if(float_val < (increment*1) -10)
     {
         return '.';
     }
@@ -431,9 +431,14 @@ object basic_cube(int buffer_size)
     return test_object;
 }
 
+int load_model(std::string path)
+{
+
+}
+
 int main (int argc, char *argv[])
 {
-    frame_buffer main_buffer = frame_buffer(100, 100);
+    frame_buffer main_buffer = frame_buffer(40, 40);
 
     frame_buffer temp_buffer = frame_buffer(main_buffer.size_x, main_buffer.size_y);
 
@@ -442,8 +447,12 @@ int main (int argc, char *argv[])
    
     object test_object = basic_cube(main_buffer.size_x);
     object test_object_2 = basic_cube(main_buffer.size_x);
-    test_object_2.object_size = vector3(10, 10, 10);
-    test_object_2.object_position = vector3(5, 20, 3);
+    test_object.object_position.z += 15;
+    test_object_2.object_size = vector3(1, 1, 3);
+    test_object_2.object_position = vector3(5, 20, -5);
+    object anotherOb = basic_cube(main_buffer.size_x);
+    anotherOb.object_position = vector3(20, 30, -10);
+    anotherOb.object_size = vector3(4, 4, 4);
 
     /*object new_object = object(3, 1);
     new_object.object_size = vector3(1, 1, 1);
@@ -497,6 +506,7 @@ int main (int argc, char *argv[])
         //test_object.object_position.x += 0.1;
         test_object_2.object_rotation.x += 0.025;
         test_object.object_rotation.y += 0.05;
+        anotherOb.object_rotation.z += 0.05;
         //test_object.object_rotation.x += 0.05;
         //test_object.object_rotation.x += 0.05;
     }

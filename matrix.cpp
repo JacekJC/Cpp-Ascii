@@ -72,7 +72,7 @@ vector3 mat_x_vec3(float* mul, vector3 vec)
         }
         actual_vec_4[x] = new_val;
     }
-    //delete[] mul;    
+    delete[] mul;    
 
     return vector3(actual_vec_4[0], actual_vec_4[1], actual_vec_4[2]);
 }
