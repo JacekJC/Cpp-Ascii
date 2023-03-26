@@ -10,29 +10,35 @@
 
 char print_val(float float_val)
 {
+    float increment = 20 / 5;
     if(float_val == -10)
     {
         return ' '; 
     }
-    else if(float_val < 0)
+    else if(float_val < (increment) -10)
     {
         return '.';
     }
-    else if(float_val < 0.75)
-    {
-        return 'O';
-    }
-    else if(float_val < 1.5)
+    else if(float_val < (increment*2) -10)
     {
         return ':';
     }
-    else if(float_val < 2)
+    else if(float_val < (increment *3) - 10)
     {
-        return '@';
-    }else{
+        return 'r';
+    }
+    else if(float_val < (increment * 4) - 10)
+    {
+        return 'u';
+    }
+    else if(float_val < (increment * 5) - 10)
+    {
         return 'W';
     }
+    else{
 
+        return '@';
+    }
 }
 
 class frame_buffer{
@@ -119,11 +125,12 @@ class frame_buffer{
                 int val = -1;
                 if(ax - bx > 0)
                     val = 1;
-                for(int x = 0; x < xdist; x++)
+                float value_dif = get_pixel(bx, by) - get_pixel(ax, ay);
+                for(int x = 1; x < xdist; x++)
                 {
                     int xpos = ax + (-x * val);
                     int ypos = ay - (ydiff * x);
-                    set_pixel(xpos, ypos, (get_pixel(ax, ay) - get_pixel(bx, by)) * ((float)x / xdist));
+                    set_pixel(xpos, ypos, get_pixel(ax, ay) + ((float)x / xdist) * value_dif);
                 }
             }
             else
@@ -133,11 +140,17 @@ class frame_buffer{
                 int val = -1;
                 if(ay - by > 0)
                     val = 1;
-                for(int y = 0; y < ydist; y++)
+
+                float value_dif = get_pixel(bx, by) - get_pixel(ax, ay);
+                for(int y = 1; y < ydist; y++)
                 {
                     int xpos = ax - (xdiff * y);
                     int ypos = ay + (-y * val);
-                    set_pixel(xpos, ypos, (get_pixel(ax, ay) - get_pixel(bx, by)) * ((float)y / ydist));
+                    if(xpos < 0)
+                        xpos = 0;
+                    if(xpos >= size_x)
+                        xpos = size_x-1;
+                    set_pixel(xpos, ypos, get_pixel(ax, ay) + ((float)y / ydist) * value_dif);
                 }
             }
         }
@@ -162,9 +175,10 @@ class frame_buffer{
                                 if(first_ind + 1 != x + off)
                                 {
                                     second_ind = x + off;
-                                    for(int i = 0; i < second_ind - first_ind; i++)
+                                    float difference = (buffer_data[second_ind] - buffer_data[first_ind]);
+                                    for(int i = 1; i < second_ind - first_ind; i++)
                                     {
-                                        buffer_data[(first_ind + i)] = (buffer_data[first_ind] - buffer_data[second_ind]) * ((float)i / (second_ind - first_ind));
+                                        buffer_data[(first_ind + i)] = buffer_data[first_ind] + (((float)i) / (second_ind - first_ind)) * (difference);
                                     }
                                     second_ind = -1;
                                     first_ind = -1;
@@ -186,9 +200,14 @@ class frame_buffer{
             {
                 for(int x = 0; x < buffer_size; x++)
                 {
-                    if(buffer_data[x] > to_apply->buffer_data[x])
+                    float val = 0;
+                    if(buffer_data[x] > -10)
                     {
-                        to_apply->buffer_data[x] = buffer_data[x];
+                        if(buffer_data[x] > to_apply->buffer_data[x])
+                        {
+                            val += buffer_data[x];
+                            to_apply->buffer_data[x] = val;
+                        }
                     }
                 }
             }
@@ -301,8 +320,8 @@ vector3 vert_render(object* o, int x, frame_buffer* buffer)
     v = mat_x_vec3(mat_transform(o->object_position.x, o->object_position.y, o->object_position.z), v);           
             
            
-    int new_x = (v.x);
-    int new_y = (v.y);
+    int new_x = (v.x/v.z);
+    int new_y = (v.y/v.z);
     int new_z = (v.z);
 
     buffer->set_pixel(v.x, v.y, v.z);
@@ -310,8 +329,9 @@ vector3 vert_render(object* o, int x, frame_buffer* buffer)
     return v;
 }
 
-int render_tri(object* ob, int tri_index, frame_buffer* buffer)
+int render_tri(object* ob, int tri_index, frame_buffer* buffer, frame_buffer* target_buffer, renderer* source)
 {
+
     vector3 a = vert_render(ob, ob->object_tris[(tri_index*3) + 0], buffer);   
     vector3 b = vert_render(ob, ob->object_tris[(tri_index*3) + 1], buffer);   
     vector3 c = vert_render(ob, ob->object_tris[(tri_index*3) + 2], buffer);
@@ -319,44 +339,53 @@ int render_tri(object* ob, int tri_index, frame_buffer* buffer)
     ////a.print();
     //b.print();
     //c.print();
+    vector3 la = vector3(b.x - a.x, b.y - a.y, b.z - a.z);
+    vector3 lb = vector3(c.x - a.x, c.y - a.y, c.z - a.z);
 
+    vector3 normal = la.cross_vec(lb);
+
+    /*if(normal.cross_mag(vector3(1, 0, 0)) > 0)
+        return 1;*/
 
     buffer->draw_line(a.x, a.y, b.x, b.y);
     buffer->draw_line(b.x, b.y, c.x, c.y);
     buffer->draw_line(c.x, c.y, a.x, a.y);
 
 
-    buffer->rasterize_tri();   
+    buffer->rasterize_tri();
+    buffer->apply(target_buffer, true);
+    return 0;
 }
 
 std::vector<object*> object::world_objects;
 
-int render_frame(frame_buffer* this_buffer, renderer this_source)
+int render_frame(frame_buffer* temp_buffer, frame_buffer* this_buffer, renderer this_source)
 {
+    temp_buffer->clear_buffer();
     for(object* o : object::world_objects)
     {
         for(int x = 0; x < o->ob_tri_count; x++)
         {
+            temp_buffer->clear_buffer();
             //std::cout << "rendering tri" << std::endl;
-            render_tri(o, x, this_buffer);
+            render_tri(o, x, temp_buffer, this_buffer, &this_source);
+            //temp_buffer->print_frame();
+            //this_buffer->print_frame();
         }
     }
     return 0;
 }
 
-int main (int argc, char *argv[])
+object basic_cube(int buffer_size)
 {
-    frame_buffer main_buffer = frame_buffer(150, 120);
-    camera main_cam = camera(0, 0, 0, 90);
-    vertex new_vert = vertex(0.5, 0.5, -0.5);
     object test_object = object(8, 12);
-    float size = 20;
+    float size = buffer_size/5;
     test_object.object_size.x = size;
     test_object.object_size.y = size;
     test_object.object_size.z = size;
-    test_object.object_position.x = 50;
-    test_object.object_position.y = 50;
-    test_object.object_position.z = 0;
+    test_object.object_position.x =size*2.5;
+    test_object.object_position.y = size*2.5;
+    test_object.object_position.z = -6;
     const float vertexval = 1;
 
     /*
@@ -378,21 +407,43 @@ int main (int argc, char *argv[])
     test_object.set_vertex(5, vertex(vertexval, -vertexval, vertexval));
     test_object.set_vertex(6, vertex(-vertexval, -vertexval, -vertexval));
     test_object.set_vertex(7, vertex(vertexval, -vertexval, -vertexval));
+    //012
     test_object.set_tri(0, 0, 1, 2);
-    test_object.set_tri(1, 1, 2, 3);
+    test_object.set_tri(1, 3, 2, 1);
+    //234
     test_object.set_tri(2, 2, 3, 4);
-    test_object.set_tri(3, 3, 4, 5);
+    test_object.set_tri(3, 5, 4, 3);
+
     test_object.set_tri(4, 4, 5, 6);
-    test_object.set_tri(5, 5, 6, 7);
+    test_object.set_tri(5, 7, 6, 5);
+    
     test_object.set_tri(6, 6, 7, 0);
-    test_object.set_tri(7, 7, 0, 1);
-    test_object.set_tri(8, 0, 2, 4);
-    test_object.set_tri(9, 2, 4, 6);
+    test_object.set_tri(7, 1, 0, 7);
+    
+    test_object.set_tri(8, 0, 2, 6);
+    test_object.set_tri(9, 4, 6, 2);
+    
     test_object.set_tri(10, 1, 3, 7);
-    test_object.set_tri(11, 3, 7, 5);
+    test_object.set_tri(11, 5, 7, 3);
 
 
-    test_object.object_rotation = vector3(32, 42, 10);
+    test_object.object_rotation = vector3(45, 45, 85);
+    return test_object;
+}
+
+int main (int argc, char *argv[])
+{
+    frame_buffer main_buffer = frame_buffer(100, 100);
+
+    frame_buffer temp_buffer = frame_buffer(main_buffer.size_x, main_buffer.size_y);
+
+    camera main_cam = camera(0, 0, 0, 90);
+    vertex new_vert = vertex(0.5, 0.5, -0.5);
+   
+    object test_object = basic_cube(main_buffer.size_x);
+    object test_object_2 = basic_cube(main_buffer.size_x);
+    test_object_2.object_size = vector3(10, 10, 10);
+    test_object_2.object_position = vector3(5, 20, 3);
 
     /*object new_object = object(3, 1);
     new_object.object_size = vector3(1, 1, 1);
@@ -424,26 +475,30 @@ int main (int argc, char *argv[])
     v = mat_x_vec3(mat_transform(2, 2, 2), v);
     v.print();*/
 
-    main_buffer.clear_buffer();
-
-    //print_mat(mat_transform(2, 3, 4));
-    //main_buffer.print_frame();
-
     //main_buffer.clear_buffer();
 
-    render_frame(&main_buffer, main_cam);
+    //print_mat(mat_transform(2, 3, 4));
+
+    //main_buffer.clear_buffer();
+    main_buffer.clear_buffer();
+    temp_buffer.clear_buffer();
+    render_frame(&temp_buffer, &main_buffer, main_cam);
+    //temp_buffer.print_frame();
     main_buffer.print_frame();
+    //main_buffer.print_frame();
 
     while(true)
     {
-        render_frame(&main_buffer, main_cam);
+        render_frame(&temp_buffer, &main_buffer, main_cam);
         main_buffer.print_frame();
         system("cls");
         main_buffer.clear_buffer();
         //test_object.object_size.x += 0.1;
         //test_object.object_position.x += 0.1;
-        test_object.object_rotation.x += 0.05;
+        test_object_2.object_rotation.x += 0.025;
         test_object.object_rotation.y += 0.05;
+        //test_object.object_rotation.x += 0.05;
+        //test_object.object_rotation.x += 0.05;
     }
 
     char *tempval;

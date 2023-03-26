@@ -22,6 +22,16 @@ class vector3
         {
             std::cout << x << " " << y << " " << z << std::endl;
         }
+
+        vector3 cross_vec(vector3 op)
+        {
+            return vector3((y * op.z - op.y * z), (x * op.z - op.x * z), (x * op.y - op.x * y));
+        }
+
+        float cross_mag(vector3 op)
+        {
+            return (y * op.z - op.y * z) - (x * op.z - op.x * z) + (x * op.y - op.x * y);
+        }       
 };
 
 class vector4
